@@ -9,17 +9,20 @@ class FlowHead(nn.Module):
         self.conv1 = nn.Conv2d(input_dim, hidden_dim, 3, padding=1)
         self.conv2 = nn.Conv2d(hidden_dim, 2, 3, padding=1)
         self.relu = nn.ReLU(inplace=True)
-
+    #将hidden_dim等信息经由卷积输出为一个二维的向量，其中包含了这些hidden_dim的信息
     def forward(self, x):
         return self.conv2(self.relu(self.conv1(x)))
 
 class ConvGRU(nn.Module):
     def __init__(self, hidden_dim=128, input_dim=192+128):
+        # 更新门 z, 重置门 r, 候选态 q 都用 3×3 卷积
         super(ConvGRU, self).__init__()
         self.convz = nn.Conv2d(hidden_dim+input_dim, hidden_dim, 3, padding=1)
         self.convr = nn.Conv2d(hidden_dim+input_dim, hidden_dim, 3, padding=1)
         self.convq = nn.Conv2d(hidden_dim+input_dim, hidden_dim, 3, padding=1)
 
+    # h: 上一时刻隐藏态 [B, Hdim, H, W]
+    # x: 本次输入特征 [B, InDim, H, W]
     def forward(self, h, x):
         hx = torch.cat([h, x], dim=1)
 
@@ -31,6 +34,7 @@ class ConvGRU(nn.Module):
         return h
 
 class SepConvGRU(nn.Module):
+    # 分两步：先横向 (1×5) 卷积，再纵向 (5×1) 卷积
     def __init__(self, hidden_dim=128, input_dim=192+128):
         super(SepConvGRU, self).__init__()
         self.convz1 = nn.Conv2d(hidden_dim+input_dim, hidden_dim, (1,5), padding=(0,2))
@@ -43,6 +47,7 @@ class SepConvGRU(nn.Module):
 
 
     def forward(self, h, x):
+        #一样分两部，横向和纵向进行更新
         # horizontal
         hx = torch.cat([h, x], dim=1)
         z = torch.sigmoid(self.convz1(hx))
@@ -60,6 +65,7 @@ class SepConvGRU(nn.Module):
         return h
 
 class SmallMotionEncoder(nn.Module):
+    #将flowhead与corr的特征合并成motion的特征
     def __init__(self, args):
         super(SmallMotionEncoder, self).__init__()
         cor_planes = args.corr_levels * (2*args.corr_radius + 1)**2
@@ -91,7 +97,7 @@ class BasicMotionEncoder(nn.Module):
         cor = F.relu(self.convc2(cor))
         flo = F.relu(self.convf1(flow))
         flo = F.relu(self.convf2(flo))
-
+        #维度相加，剩下的b,h,w不变（输出的是4d向量）
         cor_flo = torch.cat([cor, flo], dim=1)
         out = F.relu(self.conv(cor_flo))
         return torch.cat([out, flow], dim=1)
@@ -125,11 +131,11 @@ class BasicUpdateBlock(nn.Module):
             nn.Conv2d(256, 64*9, 1, padding=0))
 
     def forward(self, net, inp, corr, flow, upsample=True):
-        motion_features = self.encoder(flow, corr)
+        motion_features = self.encoder(flow, corr)#motion encoder将flow和corr拼接成新的motion特征
         inp = torch.cat([inp, motion_features], dim=1)
 
-        net = self.gru(net, inp)
-        delta_flow = self.flow_head(net)
+        net = self.gru(net, inp)#作为input交给gru,gru输出新的net
+        delta_flow = self.flow_head(net)#net计算delta net
 
         # scale mask to balence gradients
         mask = .25 * self.mask(net)

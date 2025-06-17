@@ -1,6 +1,5 @@
 from __future__ import print_function, division
-import sys
-sys.path.append('core')
+
 
 import argparse
 import os
@@ -8,12 +7,12 @@ import cv2
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-
+import sys, os
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-
+sys.path.insert(0, os.path.dirname(__file__))
 from torch.utils.data import DataLoader
 from raft import RAFT
 import evaluate
