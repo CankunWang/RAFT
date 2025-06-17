@@ -6,7 +6,7 @@ import torch.nn.functional as F
 class ResidualBlock(nn.Module):
     def __init__(self, in_planes, planes, norm_fn='group', stride=1):
         super(ResidualBlock, self).__init__()
-  
+        #两层3*3卷积+Relu激活+4种归一化方式
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, padding=1, stride=stride)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, padding=1)
         self.relu = nn.ReLU(inplace=True)
@@ -52,12 +52,13 @@ class ResidualBlock(nn.Module):
 
         if self.downsample is not None:
             x = self.downsample(x)
-
+        #经典残差块计算方式，下采样是因为如果stride不等于1时，通道数不等需要下采样保持一致
         return self.relu(x+y)
 
 
 
 class BottleneckBlock(nn.Module):
+    #1*1卷积降维---3*3卷积---1*1卷积升维；相当于轻量化的残差块
     def __init__(self, in_planes, planes, norm_fn='group', stride=1):
         super(BottleneckBlock, self).__init__()
   

@@ -20,9 +20,9 @@ class CorrBlock:
 
         batch, h1, w1, dim, h2, w2 = corr.shape
         corr = corr.reshape(batch*h1*w1, dim, h2, w2)
-        
+        #构建一个6d向量
         self.corr_pyramid.append(corr)
-        for i in range(self.num_levels-1):
+        for i in range(self.num_levels-1):#
             corr = F.avg_pool2d(corr, 2, stride=2)
             self.corr_pyramid.append(corr)
 
@@ -54,7 +54,7 @@ class CorrBlock:
         batch, dim, ht, wd = fmap1.shape
         fmap1 = fmap1.view(batch, dim, ht*wd)
         fmap2 = fmap2.view(batch, dim, ht*wd) 
-        
+        #对6d向量里左图每一点x1,y1；通过点乘计算和右图区域内所有点的相似度;区域内的点范围表示在_call_里，通过一个以预测点为半径的区域，对区域内所有点计算相似度
         corr = torch.matmul(fmap1.transpose(1,2), fmap2)
         corr = corr.view(batch, ht, wd, 1, ht, wd)
         return corr  / torch.sqrt(torch.tensor(dim).float())
