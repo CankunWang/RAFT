@@ -14,7 +14,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 sys.path.insert(0, os.path.dirname(__file__))
 from torch.utils.data import DataLoader
-from raft import RAFT
+from core.raft import RAFT
 import evaluate
 import datasets
 
